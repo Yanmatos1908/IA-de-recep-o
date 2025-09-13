@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>IA Recepcionista – Feira de Ciências</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: system-ui, Segoe UI, Roboto, Ubuntu, Inter, sans-serif;
+      background: #0a0f1f;
+      color: #e6f2ff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    #particles-js {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+    }
+
+    /* Container da onda */
+    .wave-container {
+      width: 400px;
+      height: 150px;
+      margin: 20px 0;
+      position: relative;
+      z-index: 2;
+    }
+    canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    /* Caixa de fala */
+    .speech-box {
+      background: rgba(0, 255, 255, 0.08);
+      border: 2px solid #0ff;
+      padding: 14px 20px;
+      border-radius: 18px;
+      color: #0ff;
+      font-size: 1rem;
+      font-weight: 500;
+      text-align: center;
+      max-width: 280px;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+      backdrop-filter: blur(6px);
+      box-shadow: 0 0 25px rgba(0,255,255,.5);
+      z-index: 2;
+    }
+    .speech-box.visible {
+      opacity: 1;
+    }
+
+    /* Botão embaixo */
+    .button-container {
+      position: absolute;
+      bottom: 40px;
+      z-index: 2;
+    }
+    button {
+      font-size: 1.2rem;
+      background: #0ff3;
+      color: #fff;
+      border: 2px solid #0ff;
+      padding: 14px 26px;
+      border-radius: 16px;
+      cursor: pointer;
+      box-shadow: 0 0 25px rgba(0,255,255,.6);
+    }
+    button:hover { filter: brightness(1.3); }
+  </style>
+</head>
+<body>
+  <div id="particles-js"></div>
+
+  <div class="wave-container">
+    <canvas id="waveCanvas"></canvas>
+  </div>
+
+  <div class="speech-box" id="speechBox"></div>
+
+  <div class="button-container">
+    <button id="btnApresentacao">▶️ Ouvir Apresentação</button>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/particles.js"></script>
+  <script>
+    /* Fundo partículas */
+    particlesJS("particles-js", {
+      particles: {
+        number: { value: 60 },
+        color: { value: "#00ffff" },
+        shape: { type: "circle" },
+        opacity: { value: 0.4 },
+        size: { value: 3 },
+        line_linked: {
+          enable: true,
+          distance: 150,
+          color: "#00ffff",
+          opacity: 0.3,
+          width: 1
+        },
+        move: { enable: true, speed: 1.2 }
+      }
+    });
+
+    /* Onda suave */
+    const canvas = document.getElementById('waveCanvas');
+    const ctx = canvas.getContext('2d');
+    let width, height;
+    function resizeCanvas() {
+      width = canvas.clientWidth;
+      height = canvas.clientHeight;
+      canvas.width = width;
+      canvas.height = height;
+    }
+    resizeCanvas();
+    window.addEventListener('resize', resizeCanvas);
+
+    let speaking = false;
+    let t = 0;
+
+    function drawWave() {
+      ctx.clearRect(0, 0, width, height);
+
+      ctx.beginPath();
+      ctx.moveTo(0, height/2);
+
+      for (let x = 0; x <= width; x++) {
+        let y = height/2 
+              + Math.sin((x * 0.02) + t) * (speaking ? 25 : 5)   // amplitude da onda
+              + Math.sin((x * 0.04) + t*0.5) * (speaking ? 15 : 3);
+        ctx.lineTo(x, y);
+      }
+
+      let gradient = ctx.createLinearGradient(0,0,width,0);
+      gradient.addColorStop(0,"#0033ff");
+      gradient.addColorStop(0.5,"#00ffff");
+      gradient.addColorStop(1,"#0033ff");
+
+      ctx.strokeStyle = gradient;
+      ctx.lineWidth = 3;
+      ctx.shadowBlur = 20;
+      ctx.shadowColor = "#00ffff";
+      ctx.stroke();
+
+      t += 0.03; // velocidade suave
+      requestAnimationFrame(drawWave);
+    }
+    drawWave();
+
+    /* Fala */
+    const speechBox = document.getElementById('speechBox');
+    let voices=[]; let ptVoice=null;
+    function loadVoices(){
+      voices = speechSynthesis.getVoices();
+      ptVoice = voices.find(v=>/pt-BR/.test(v.lang)) || null;
+    }
+    if('speechSynthesis' in window){
+      loadVoices();
+      window.speechSynthesis.onvoiceschanged = loadVoices;
+    }
+
+    function speak(text){
+      if(!('speechSynthesis' in window)) return;
+      window.speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(text);
+      u.lang='pt-BR'; if(ptVoice) u.voice=ptVoice;
+
+      speechBox.textContent = text;
+      speechBox.classList.add('visible');
+
+      speaking = true;
+      u.onend=()=> { speaking=false; speechBox.classList.remove('visible'); };
+      u.onerror=()=> { speaking=false; speechBox.classList.remove('visible'); };
+
+      speechSynthesis.speak(u);
+    }
+
+    document.getElementById('btnApresentacao').addEventListener('click', ()=>{
+      speak("Olá! Sejam bem-vindos à nossa sala da Feira de Ciências. Hoje vamos mostrar como a inteligência artificial pode ajudar na segurança!");
+    });
+  </script>
+</body>
+</html>
